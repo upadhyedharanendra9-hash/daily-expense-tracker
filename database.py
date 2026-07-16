@@ -11,7 +11,8 @@ def hash_password(password: str) -> str:
 def init_db():
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
-        # Create Users Table
+        
+        # 1. Create Users Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +20,15 @@ def init_db():
                 password TEXT NOT NULL
             )
         """)
-        # Create Expenses Table linked to user_id
+        
+        # 2. Migration Check: Drop old version of expenses if it lacks user_id
+        try:
+            cursor.execute("SELECT user_id FROM expenses LIMIT 1")
+        except sqlite3.OperationalError:
+            # If this column check fails, the old table structure is conflicting. Clear it.
+            cursor.execute("DROP TABLE IF EXISTS expenses")
+            
+        # 3. Create Modern Expenses Table linked to user_id
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS expenses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

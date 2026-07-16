@@ -13,8 +13,44 @@ st.set_page_config(page_title="Premium Wealth Tracker", page_icon="💸", layout
 # Initialize database
 database.init_db()
 
+# --- SIDEBAR: USER INSTRUCTIONS & FILTERS ---
+st.sidebar.title("🎮 App Control Center")
+
+with st.sidebar.expander("📖 Quick Start Guide & Instructions", expanded=True):
+    st.markdown("""
+    **Welcome to your AI Expense Tracker!**
+    This app uses Google Gemini to read natural language and break down your spending automatically.
+    
+    ### 🚀 How to Use It:
+    1. **Type like you talk:** Describe your day's spending in the text box on the right.
+    2. **Be specific with amounts:** Include the numbers and currency (e.g., *Rs 500* or *$12*).
+    3. **Let the AI judge:** The AI automatically categorizes items into:
+        * 🟢 **Good:** Necessary/Smart choices (Rent, Groceries, Utilities).
+        * 🔴 **Bad:** Impulsive/Wasteful spending (Late night snacks, games, luxury splurges).
+    4. **Analyze:** Check the charts to see your net outflow performance.
+    """)
+
+st.sidebar.divider()
+st.sidebar.header("🗓️ Dashboard Filters")
+selected_date = st.sidebar.date_input("Select Analysis Date", datetime.now())
+date_str = selected_date.strftime("%Y-%m-%d")
+
+# --- MAIN INTERFACE ---
 st.title("💸 AI Personal Expense Tracker")
-st.markdown("Log your spending using natural language. Configured for premium execution.")
+st.markdown("Log your spending using conversational language. Let artificial intelligence structure your financial health.")
+
+# --- QUICK COPY EXAMPLES ---
+with st.expander("💡 Need an example? Click here to see what you can type", expanded=False):
+    st.markdown("""
+    Copy and paste any of these lines into the box below to test how the AI processes data:
+    
+    * **Example 1 (Mixed Day):** 
+      `Paid Rs 12000 for house rent today morning. Later, ordered a gourmet burger on Swiggy for Rs 450 because I was lazy to cook.`
+    * **Example 2 (Multiple Items):** 
+      `Spent $50 on weekly groceries, then blew $120 on an impulse purchase for a video game skin.`
+    * **Example 3 (Simple Entry):** 
+      `Bought petrol for my vehicle for 1000 INR.`
+    """)
 
 # --- PYDANTIC SCHEMAS ---
 class ExpenseItem(BaseModel):
@@ -28,9 +64,8 @@ class DailyLog(BaseModel):
     expenses: list[ExpenseItem]
     total_spent: float
 
-# --- AI PARSING LOGIC (SELF-CONTAINED) ---
+# --- AI PARSING LOGIC ---
 def parse_expenses_with_ai(user_comment: str) -> DailyLog:
-    # Pulls directly from Streamlit Secrets system
     client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
     
     prompt = f"""
@@ -49,14 +84,12 @@ def parse_expenses_with_ai(user_comment: str) -> DailyLog:
     )
     return DailyLog.model_validate_json(response.text)
 
-# --- SIDEBAR FILTERS ---
-st.sidebar.header("🗓️ Dashboard Filters")
-selected_date = st.sidebar.date_input("Select Analysis Date", datetime.now())
-date_str = selected_date.strftime("%Y-%m-%d")
-
 # --- USER INPUT ENTRY ---
 st.subheader("🖊️ Log New Transactions")
-user_comment = st.text_area("Tell the AI what you spent money on today:")
+user_comment = st.text_area(
+    "What did you spend money on today?", 
+    placeholder="e.g., I spent Rs 800 on fresh fruits and vegetables, and Rs 1200 on a shirt I didn't really need..."
+)
 
 if st.button("Analyze & Record Expenses", type="primary"):
     if not user_comment.strip():
@@ -67,7 +100,7 @@ if st.button("Analyze & Record Expenses", type="primary"):
                 parsed_data = parse_expenses_with_ai(user_comment)
                 database.save_expenses(parsed_data.expenses)
                 st.success(f"Recorded {len(parsed_data.expenses)} items successfully!")
-                st.rerun() # Refresh the dashboard to show changes immediately
+                st.rerun() 
             except Exception as e:
                 st.error(f"Failed to process log: {e}")
 
@@ -78,7 +111,7 @@ st.subheader(f"📊 Financial Performance Summary: {date_str}")
 raw_records = database.get_daily_summary(date_str)
 
 if not raw_records:
-    st.info("No transaction entries logged for this date yet.")
+    st.info("No transaction entries logged for this date yet. Try using one of the examples above!")
 else:
     df = pd.DataFrame(raw_records)
     good_total = df[df['category'] == 'Good']['amount'].sum()

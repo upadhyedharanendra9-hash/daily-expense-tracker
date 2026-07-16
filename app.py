@@ -9,6 +9,8 @@ import plotly.express as px
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Premium Wealth Tracker", page_icon="💸", layout="wide")
+
+# Initialize database
 database.init_db()
 
 st.title("💸 AI Personal Expense Tracker")
@@ -26,6 +28,7 @@ class DailyLog(BaseModel):
     expenses: list[ExpenseItem]
     total_spent: float
 
+# --- AI PARSING LOGIC (SELF-CONTAINED) ---
 def parse_expenses_with_ai(user_comment: str) -> DailyLog:
     # Pulls directly from Streamlit Secrets system
     client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
@@ -64,6 +67,7 @@ if st.button("Analyze & Record Expenses", type="primary"):
                 parsed_data = parse_expenses_with_ai(user_comment)
                 database.save_expenses(parsed_data.expenses)
                 st.success(f"Recorded {len(parsed_data.expenses)} items successfully!")
+                st.rerun() # Refresh the dashboard to show changes immediately
             except Exception as e:
                 st.error(f"Failed to process log: {e}")
 

@@ -62,7 +62,7 @@ st.sidebar.divider()
 # --- APP ROUTING LOGIC ---
 if not st.session_state["logged_in"]:
     st.title("💸 AI Personal Expense Tracker")
-    st.info("👋 Please log in or create an account in the sidebar to securely access your personal dashboard.")
+    st.info("👋 Welcome! Please login or sign up in the sidebar to access your individual private dashboard securely.")
     
 else:
     # --- LOGGED IN USER INTERFACE ---
@@ -123,7 +123,6 @@ else:
             with st.spinner("🤖 AI is analyzing financial context..."):
                 try:
                     parsed_data = parse_expenses_with_ai(user_comment)
-                    # Pass user_id into saving matrix
                     database.save_expenses(current_uid, parsed_data.expenses)
                     st.success(f"Recorded {len(parsed_data.expenses)} items successfully!")
                     st.rerun()
